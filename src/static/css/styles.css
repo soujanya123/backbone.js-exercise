@@ -1,0 +1,40 @@
+.list-heading {
+  font-weight: bold;
+  padding: 0 2%;
+}
+/*.list-heading > div {
+  text-align: center;
+}*/
+.list-info {
+  margin: 20px 0;
+}
+.list, .detail {
+  padding: 10px 0;
+  margin: 2px 0;
+  border: 1px solid #EEE;
+}
+/*.list > div {
+  text-align: center;
+}*/
+.list:hover {
+  cursor: pointer;
+  background: #EEE;
+}
+.detail-view {
+  margin-top: 1%;
+}
+.update-button-alignment{
+  margin-top: 5px;
+}
+.tag-wrapper {
+  margin-bottom: 10px;
+}
+.tag {
+  border: 1px solid #333;
+  padding: 2px;
+}
+.tag .remove{
+  margin-left: 3px;
+  border-left: 1px solid #333;
+  padding: 0 2px;
+}
