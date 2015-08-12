@@ -92,6 +92,7 @@ var AppView = Backbone.View.extend({
     if(!_.has(update_views, type)) {
       return;
     }
+
     //TODO: maybe a later optimization could be to not destroy the views, but
     //to switch among views..
     if(this.current_view) {
@@ -308,6 +309,8 @@ var LabDetailView = Backbone.View.extend({
 
 var LabUpdateView = Backbone.View.extend({
   events: {
+    'click #cancel-btn': 'cancel_update',
+    'click #save-btn': 'save',
     'click #add-tech': 'add_technology'
   },
   initialize: function() {
@@ -317,16 +320,60 @@ var LabUpdateView = Backbone.View.extend({
   },
   render: function() {
     console.log('rendering update view');
-    var instts = VLD.app_view.get_institutes();
-    var discs = VLD.app_view.get_disciplines();
+    this.instts = VLD.app_view.get_institutes();
+    this.discs = VLD.app_view.get_disciplines();
     this.$el.html(this.template({
       lab: this.model.toJSON(),
-      instts: instts,
-      discs: discs
+      instts: this.instts,
+      discs: this.discs
     }));
   },
   add_technology: function() {
     var tech = $('#lab-tech-select option:selected').val();
+  },
+  cancel_update: function() {
+    // cancelling an update is aborting current changes and going back to the
+    // detailed view. Hence, the operation would be just to trigger a detail
+    // view to the controller
+    VLD.app_view.trigger('detail-view', 'lab', this.model.get('id'));
+  },
+  save: function() {
+    var self = this;
+    //console.log('original model', this.model.toJSON());
+    var attrs = this.get_attrs_from_form();
+    //console.log('new attrs', attrs);
+    this.model.set(attrs);
+    //console.log('new model', this.model.toJSON());
+    //console.log('saving updated model');
+    this.model.save({}, {
+      success: function() {
+        //console.log('save success');
+        VLD.app_view.trigger('detail-view', 'lab', self.model.get('id'));
+      },
+      error: function() {
+        alert('Error saving lab details. Please try again');
+      }
+    });
+  },
+  get_attrs_from_form: function() {
+    var disc_id = parseInt($('#discipline-select option:selected').val());
+    var discipline = _.find(this.discs, {id: disc_id});
+    var instt_id = parseInt($('#institute-select option:selected').val());
+    var institute = _.find(this.instts, {id: instt_id});
+    return {
+      name: $('#lab-name').val(),
+      old_lab_id: $('#lab-id').val(),
+      slug: $('#lab-slug').val(),
+      discipline: discipline,
+      institute: institute,
+      is_phase_2_lab: parseBool($('#project-phase-select option:selected').val()),
+      is_src_avail: parseBool($('#is-src-avail-select option:selected').val()),
+      repo_url: $('#lab-repo-url').val(),
+      is_hosted: parseBool($('#is-hosted-select option:selected').val()),
+      //hosted_on: '',
+      hosted_url: $('#lab-hosted-url').val(),
+      remarks: $('#lab-remarks').val()
+    };
   }
 });
 
@@ -413,12 +460,61 @@ var InstituteDetailView = Backbone.View.extend({
     console.log('rendering..');
     console.log(this.model.toJSON);
     console.log(this.model)
+    console.log("model was ^    ")
     this.$el.html(this.template(this.model.toJSON()));
   },
   show_update_view: function() {
     VLD.app_view.trigger('update-view', 'institute', this.model.get('id'))
   }
 });
+
+var InstUpdateView = Backbone.View.extend({
+  events: {
+    'click #cancel-btn': 'cancel_update',
+    'click #save-btn': 'save'
+  },
+  initialize: function() {
+    console.log("initialized");
+    this.template = _.template($('#inst-update-template').html());
+    $('#result-set').append(this.$el);
+  },
+  render: function() {
+    console.log('rendering update view');
+    var instts = VLD.app_view.get_institutes();
+    this.$el.html(this.template({
+      // instts: instts,
+      institute: this.model.toJSON()
+    }));
+  },
+  cancel_update: function() {
+    VLD.app_view.trigger('detail-view', 'institute', this.model.get('id'));
+  }, 
+
+  save: function() {
+    var self = this;
+    var attrs = this.get_attrs_from_form();
+    this.model.set(attrs);
+    this.model.save({}, {
+      success: function() {
+        //console.log('save success');
+        VLD.app_view.trigger('detail-view', 'institute', self.model.get('id'));
+      },
+      error: function() {
+        alert('Error saving lab details. Please try again');
+      }
+    });
+  },
+
+  get_attrs_from_form: function() {
+    return {
+      name: $('#instt-name').val(),
+      PIC: $ ('#instt-pic').val(),
+      IIC: $('#instt-iic').val()
+    };
+  }  
+});
+
+
 
 var Discipline = Backbone.Model.extend({});
 
@@ -455,6 +551,7 @@ var DisciplinesListView = Backbone.View.extend({
   }
 });
 
+
 var DisciplineDetailView = Backbone.View.extend({
   events: {
     'click #update-btn': 'show_update_view',
@@ -476,6 +573,7 @@ var DisciplineDetailView = Backbone.View.extend({
 
 });
 
+    
 var Developer = Backbone.Model.extend({});
 
 var Developers = Backbone.Collection.extend({
@@ -532,6 +630,29 @@ var DeveloperDetailView = Backbone.View.extend({
   }
 });
 
+var DeveloperUpdateView = Backbone.View.extend({
+  events: {
+    'click #cancel-btn': 'cancel_update'
+
+  },
+  initialize: function() {
+    this.template = _.template($('#developer-update-template').html());
+    $('#result-set').append(this.$el);
+  },
+  render: function() {
+    console.log('rendering update view');
+    var instts = VLD.app_view.get_institutes();
+    this.$el.html(this.template({
+      instts: instts,
+      developer: this.model.toJSON()
+    }));
+  },
+  cancel_update: function() {
+    VLD.app_view.trigger('detail-view', 'developer', this.model.get('id'));
+  }
+
+});
+
 var Technology = Backbone.Model.extend({});
 
 var Technologies = Backbone.Collection.extend({
@@ -567,6 +688,7 @@ var TechnologiesListView = Backbone.View.extend({
   }
 });
 
+
 var TechnologyDetailView = Backbone.View.extend({
   events: {
     'click #update-btn': 'show_update_view',
@@ -588,6 +710,7 @@ var TechnologyDetailView = Backbone.View.extend({
 
 });
 
+    
 var collections = {
   lab: Labs,
   developer: Developers,
@@ -609,12 +732,13 @@ var detail_views = {
   institute: InstituteDetailView,
   developer: DeveloperDetailView,
   discipline: DisciplineDetailView,
-  technology: TechnologyDetailView
+  technology: TechnologyDetailView    
 };
 
 var update_views = {
   lab: LabUpdateView,
-  //developer: DeveloperUpdateView
+  developer: DeveloperUpdateView,
+  institute: InstUpdateView
 };
 
 var list_views = {
@@ -625,9 +749,22 @@ var list_views = {
   technology: TechnologiesListView
 };
 
+
 function init() {
   $.ajaxSetup({crossDomain: true});
   VLD.app_view = new AppView();
+}
+
+function parseBool(str) {
+  // the JSON parser can parse boolean values from string
+  // hence leveraging that..
+  return JSON.parse(str);
+}
+
+// assumes you are passing a URL. Makes a linkable(<a> tag) HTML, which opens
+// in a new tab, and returns it
+VLD.linkify = function(str) {
+  return '<a target="_blank" href="' + str + '">' + str + '</a>';
 }
 
 window.onload = function() {
